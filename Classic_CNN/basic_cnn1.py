@@ -1,4 +1,6 @@
 # %%
+from operator import mod
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,8 +14,8 @@ from tqdm.auto import tqdm
 dataset_train = load_dataset(
     "uoft-cs/cifar10",
     split="train",  # training dataset
-    # trust_remote_code=True,
-    # ignore_verifications=True,  # set to True if seeing splits Error
+    # trust_remote_code=true,
+    # ignore_verifications=true,  # set to true if seeing splits error
 )
 dataset_train
 
@@ -173,15 +175,98 @@ class ConvNeuralNet(nn.Module):
         self.max_pool5 = nn.MaxPool2d(kernel_size=3, stride=2)
         # now smooth gradual reduction 1024-512-256-10
         # with Dropout to avoid overfitting
-        self.dopout6 = nn.Dropout(p=0.5)
+        self.dropout6 = nn.Dropout(p=0.5)
         self.fc6 = nn.Linear(1024, 512)
         self.relu6 = nn.ReLU()
-        self.dopout7 = nn.Dropout(p=0.5)
+        self.dropout7 = nn.Dropout(p=0.5)
         self.fc7 = nn.Linear(512, 256)
         self.relu7 = nn.ReLU()
         self.fc8 = nn.Linear(256, num_classes)
 
+    # now the forward method
+    def forward(self, x):
+        # 1st conv bloc
+        out = self.conv1(x)
+        out = self.relu1(out)
+        out = self.max_pool1(out)
+        # 2nd conv bloc
+        out = self.conv2(out)
+        out = self.relu2(out)
+        out = self.max_pool2(out)
+        # 3rd conv bloc (deep stack)
+        out = self.conv3(out)
+        out = self.relu3(out)
+        # 4th conv bloc
+        out = self.conv4(out)
+        out = self.relu4(out)
+        # 5th conv bloc
+        out = self.conv5(out)
+        out = self.relu5(out)
+        out = self.max_pool5(out)
+        # reshaping
+        out = out.reshape(out.size(0), -1)
+        # fc layer: 1024 -> 512
+        out = self.dropout6(out)
+        out = self.fc6(out)
+        out = self.relu6(out)
+        # fc layer: 512 -> 256
+        out = self.dropout7(out)
+        out = self.fc7(out)
+        out = self.relu7(out)
+        # final fc layer
+        out = self.fc8(out)
+        return out
+
 
 # %%
+model = ConvNeuralNet(num_classes=10).to(device)
+# Loss function
+loss_func = nn.CrossEntropyLoss()
+# Optimizer: Stochastic gradient, with .008 as LR
+optimizer = torch.optim.SGD(model.parameters(), lr=0.008)
+
+
+# %%
+epochs = 50
+for epoch in range(epochs):
+    model.train()
+    for i, (imgs, lables) in enumerate(train_loader):
+        imgs = imgs.to(device)
+        lables = lables.to(device)
+        # forward propg
+        outputs = model(imgs)
+        loss = loss_func(outputs, lables)
+        # back propg
+        optimizer.zero_grad()
+        loss.backward()  # get gradients
+        optimizer.step()  # update weights
+    # testing on validation set after each epoch
+    with model.no_grad():
+        model.eval()
+        corrct = 0
+        total = 0
+        loss_history = []
+        for imgs, labels in val_loader:
+            imgs = imgs.to(device)
+            labels = labels.to(device)
+            outputs = model(imgs)
+            predected = torch.argmax(outputs, dim=1)
+            total += labels.size(0)
+            #
+            corrct += (predected == labels).sum().item()
+            loss_history.append(loss_func(labels, outputs).item())
+        #
+        mean_acc = 100 * (corrct / total)
+        #
+        mean_loss = sum(loss_history) / len(loss_history)
+    print(
+        "Epoch [{}/{}], Loss: {:.4f}, Val-loss: {:.4f}, Val-acc: {:.1f}%".format(
+            epoch + 1, epoch, loss.item(), mean_loss, mean_acc
+        )
+    )
+torch.save(model, "classic_cnn.pt")
+
+# %%
+
 
 # %%
