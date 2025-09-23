@@ -1,6 +1,5 @@
 # %%
-from operator import mod
-
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -261,12 +260,69 @@ for epoch in range(epochs):
         mean_loss = sum(loss_history) / len(loss_history)
     print(
         "Epoch [{}/{}], Loss: {:.4f}, Val-loss: {:.4f}, Val-acc: {:.1f}%".format(
-            epoch + 1, epoch, loss.item(), mean_loss, mean_acc
+            epoch + 1, epochs, loss.item(), mean_loss, mean_acc
         )
     )
 torch.save(model, "classic_cnn.pt")
 
 # %%
+model = torch.load(
+    "Classic_CNN/classic_cnn.pt", weights_only=False, map_location=torch.device("cpu")
+)
+model.eval()
+
+
+# %%
+data_test = load_dataset(
+    "uoft-cs/cifar10",
+    split="test",  # test set
+)
+preprocess = transforms.Compose(
+    [
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std),
+    ]
+)
+
+
+# %%
+# testing with the first 10 pics
+testing_set = []
+for img in data_test["img"][:10]:
+    tensor = preprocess(img)
+    testing_set.append(tensor.to(device))
+print(len(testing_set))
+print(testing_set[0].shape)
+
+
+# %%
+# stack them up to a single tensor
+test_tensor = torch.stack(testing_set)
+test_tensor.shape
+
+
+# %%
+# process the testing tensors
+outputs = model(test_tensor)
+predicted = torch.argmax(outputs, dim=1)
+print(predicted)
+print(predicted.shape)
+
+
+# %%
+print("Ground truth values: ")
+for i in range(10):
+    print(dataset_val["label"][i])
+
+
+# %%
+for i, img in enumerate(dataset_val["img"][:10]):
+    print("Image n° ", i)
+    plt.imshow(img)
+    plt.show()
+    print("Ground Tuth: ", dataset_val.features["label"].names[dataset_val["label"][i]])
+    print("Predicted: ", dataset_val.features["label"].names[predicted[i]])
 
 
 # %%
