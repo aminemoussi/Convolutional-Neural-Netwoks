@@ -32,4 +32,9 @@ classic_cnn.pt     # Trained model weights
 ```
 
 ## Training Progress
-![Training Progress](results/training_progress.png)
+![Training Progress](Classic_CNN/media/training_progress.png)
+
+## Sample Predictions
+![sample](Classic_CNN/media/sample2.png)
+
+---------
