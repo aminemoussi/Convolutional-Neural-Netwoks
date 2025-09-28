@@ -48,9 +48,9 @@ class RegionProposalNetwork(nn.Module):
         )
 
         # scales + aspect_ratios as tensors
-        scales = torch.tensor(self.scales, dtype=torch.int64, device=feat.device)
+        scales = torch.tensor(self.scales, dtype=feat.dtype, device=feat.device)
         aspect_ratios = torch.tensor(
-            self.aspect_ratios, dtype=torch.int64, device=feat.device
+            self.aspect_ratios, dtype=feat.dtype, device=feat.device
         )
 
         # now finding the zero centered anchors
