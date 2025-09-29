@@ -1,4 +1,4 @@
-# Classic CNN for CIFAR-10 Classification
+# 1. Classic CNN implementation, for classification applications
 
 A traditional Convolutional Neural Network implementation for image classification on the CIFAR-10 dataset.
 
@@ -20,14 +20,24 @@ Linear(512, 256) → ReLU → Dropout(0.5)
 Linear(256, 10)
 ```
 
+## 📁 Project Structure
+```
+Classic_CNN/
+│
+├── classic_cnn.ipynb  # Main training notebook
+├── classic_cnn.pt     # Trained model weights
+```
+
+## 📸 Screenshots
+ - Training Progress: ![](Classic_CNN/media/training_progress.png)
+ - Classification Sample: ![](Classic_CNN/media/sample1.png)
+
 ## 🚀 Features
 - Data preprocessing with normalization (mean=[0.4700, 0.4740, 0.4749], std=[0.2485, 0.2502, 0.2537])
 - Batch training with DataLoader
 - GPU acceleration support
 
-## 📁 Project Structure
-```
-classic_cnn.ipynb  # Main training notebook
-classic_cnn.pt     # Trained model weights
-```
+
+-------
+# 2. Faster R-CNN implementation
 
