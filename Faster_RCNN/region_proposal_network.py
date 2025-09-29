@@ -65,6 +65,31 @@ def apply_regression_pred_to_anchors_or_proposals(
     return pred_box
 
 
+def clamp_boxes_to_image_boundaries(boxes, image_shape):
+    boxes_x1 = boxes[..., 0]
+    boxes_y1 = boxes[..., 1]
+    boxes_x2 = boxes[..., 2]
+    boxes_y2 = boxes[..., 3]
+
+    h, w = image_shape[-2:]
+
+    boxes_x1 = boxes_x1.clamp(min=0, max=w)
+    boxes_x2 = boxes_x2.clamp(min=0, max=w)
+    boxes_y1 = boxes_y1.clamp(min=0, max=h)
+    boxes_y2 = boxes_y2.clamp(min=0, max=h)
+
+    boxes = torch.cat(
+        (
+            boxes_x1[..., None],
+            boxes_y1[..., None],
+            boxes_x2[..., None],
+            boxes_y2[..., None],
+        ),
+        dim=-1,
+    )
+    return boxes
+
+
 class RegionProposalNetwork(nn.Module):
     def __init__(self, in_channels=512):
         super(RegionProposalNetwork, self).__init__()
@@ -143,6 +168,32 @@ class RegionProposalNetwork(nn.Module):
 
         return anchors
 
+    def filter_proposals(self, proposals, cls_scores, image_shape):
+        # select top k=10000 proposals
+        cls_scores = cls_scores.reshape(-1)
+        cls_scores = torch.sigmoid(cls_scores)
+        _, top_n_idx = cls_scores.topk(10000)
+        cls_scores = cls_scores[top_n_idx]
+        proposals = proposals[top_n_idx]
+
+        # clamp to image boundaries
+        proposals = clamp_boxes_to_image_boundaries(proposals, image_shape)
+
+        # perform NMS 0.7 IoU threshold
+        keep_indices = torch.ops.torchvision.nms(proposals, cls_scores, 0.7)
+        # keep_mask = torch.zeros_like(cls_scores, dtype=torch.bool)
+        # keep_mask[keep_indices] = True
+        # keep_indices = torch.where(keep_mask)[0]
+        # post_nms_keep_indeces = keep_indices[cls_scores[keep_indices].sort(descending=True)[1]]
+
+        # keeping only top 2000
+        proposals = proposals[keep_indices[:2000]]
+        cls_scores = cls_scores[keep_indices[:2000]]
+        # proposals = proposals[post_nms_keep_indeces[:2000]]
+        # cls_scores = cls_scores[post_nms_keep_indeces[:2000]]
+
+        return proposals, cls_scores
+
     # original rgb img + its ft map + target (a dict of grount truths + labels)
     def forward(self, image, feat, target):
         # go through conv layers
@@ -163,7 +214,11 @@ class RegionProposalNetwork(nn.Module):
 
         # box_transform reshape
         box_transform_pred = box_transform_pred.view(
-            box_transform_pred.size(0), 4, rpn_feat.shape[-2], rpn_feat.shape[-1]
+            box_transform_pred.size(0),
+            number_of_anchors_per_location,
+            4,
+            rpn_feat.shape[-2],
+            rpn_feat.shape[-1],
         )
         # (Batch_Size, num_anchors × 4, H_feat, W_feat)
         box_transform_pred = box_transform_pred.permute(0, 3, 4, 1, 2)
@@ -176,3 +231,13 @@ class RegionProposalNetwork(nn.Module):
             box_transform_pred.detach().reshape(-1, 1, 4), anchors
         )
         proposals = proposals.reshape(proposals.size(0), 4)
+
+        # filtering proposals
+        proposals, cls_scores = self.filter_proposals(
+            proposals, cls_scores.detach(), image.shape
+        )
+
+        rpn_out = {"proposals": proposals, "scores": cls_scores}
+
+        if not self.training or target is None:
+            return rpn_out
