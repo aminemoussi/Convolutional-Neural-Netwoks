@@ -1,6 +1,7 @@
 import math
 
 import anchor_handling
+import core
 import torch
 import torch.nn as nn
 import torchvision
@@ -197,6 +198,73 @@ class RegionProposalNetwork(nn.Module):
 
         return proposals, cls_scores
 
+    def assign_targets_to_anchors(self, anchors, gt_boxes):
+        r"""
+        For each anchor assign a ground truth box based on the IOU.
+        Also creates classification labels to be used for training
+            Positive (label=1): Good candidate for object detection
+
+            Negative (label=0): Clearly background
+
+            Ignore (label=-1): Ambiguous cases we skip during training
+        :param anchors: (num_anchors_in_image, 4) all anchor boxes
+        :param gt_boxes: (num_gt_boxes_in_image, 4) all ground truth boxes
+        :return:
+            label: (num_anchors_in_image) {-1/0/1}
+            matched_gt_boxes: (num_anchors_in_image, 4) coordinates of assigned gt_box to each anchor
+                Even background/to_be_ignored anchors will be assigned some ground truth box.
+                It's fine, we will use label to differentiate those instances later
+        """
+
+        # iou of each selected anchor with all gt boxes
+        iou_matrix = core.iou(gt_boxes, anchors)
+
+        # best gt box for each anchor box
+        best_match_iou, best_match_gtbox_index = iou_matrix.max(dim=0)
+
+        # so we keep the iou thats more than a threshhold, and for some
+        # boxes that have no anchors with iou > threshold, we just keep the
+        # anchor with highest iou
+        best_match_gtbox_index_pre_threshold = best_match_gtbox_index.clone()
+
+        below_threshold_indeces = best_match_iou < 0.3  # background
+        between_thresholds = (best_match_iou >= 0.3) & (
+            best_match_iou < 0.7
+        )  # amigous so ignore
+
+        best_match_gtbox_index[below_threshold_indeces] = -1
+        best_match_gtbox_index[between_thresholds] = -2
+
+        # now gt boxes with low iou
+        best_gt_iou_for_anchor, _ = iou_matrix.max(dim=1)
+        # anchors with highest iou per box
+        gt_with_highest_uoi = torch.where(iou_matrix == best_gt_iou_for_anchor[:, None])
+
+        # update some already markes as -1 or -2 as valid now to fix low quality
+        # boxes anchor assignement
+        pred_inds_to_update = gt_with_highest_uoi[1]
+        best_match_gtbox_index[pred_inds_to_update] = (
+            best_match_gtbox_index_pre_threshold[pred_inds_to_update]
+        )
+
+        # Get matched GT boxes (negative indices get clamped to 0)
+        matched_gt_boxes = gt_boxes[best_match_gtbox_index.clamp(min=0)]
+
+        # foreground anchor labels as 1
+        labels = best_match_gtbox_index >= 0
+        labels = labels.to(dtype=torch.float32)
+
+        # background anchor labels as 0
+        background_anchors = best_match_gtbox_index == -1
+        labels[background_anchors] = 0.0
+
+        # ignored anchors labeled -1
+        ignored_anchors = best_match_gtbox_index == -2
+        labels[ignored_anchors] = -1.0
+        # Later for classification we will only pick labels which have > 0 label
+
+        return labels, matched_gt_boxes
+
     # original rgb img + its ft map + target (a dict of grount truths + labels)
     def forward(self, image, feat, target):
         # go through conv layers
@@ -244,3 +312,14 @@ class RegionProposalNetwork(nn.Module):
 
         if not self.training or target is None:
             return rpn_out
+        else:
+            # training see how good the classification/regression was
+            # by comparing what we got with the GT, we do that by computing
+            # loss
+
+            # assign each gt box an number of overlapped anchors
+            labels_for_anchors, matched_gt_boxes_for_anchors = (
+                self.assign_targets_to_anchors(anchors, target["bboxes"][0])
+            )
+            # now each gt box has a set of anchors that overlap with it
+            pass
