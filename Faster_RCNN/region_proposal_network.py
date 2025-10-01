@@ -322,4 +322,15 @@ class RegionProposalNetwork(nn.Module):
                 self.assign_targets_to_anchors(anchors, target["bboxes"][0])
             )
             # now each gt box has a set of anchors that overlap with it
-            pass
+
+            # calculate the exact box adjustments needed to transform each anchor into their matched ground truth boxe
+            regression_targets = anchor_handling.boxes_to_transformation_targets(
+                matched_gt_boxes_for_anchors, anchors
+            )
+
+            # now sample 256 samples, 128 Positive + 128 negative
+            sampled_neg_indc_mask, sampled_pos_indc_mask = (
+                anchor_handling.sample_positive_negative(
+                    labels_for_anchors, pos_count=128, total_count=256
+                )
+            )
