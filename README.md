@@ -39,5 +39,26 @@ Classic_CNN/
 
 
 -------
-# 2. Faster R-CNN implementation
+# 2. Faster R-CNN Object Detection in PyTorch
 
+ Faster R-CNN implementation for object detection, training, inference, and mAP evaluation using PyTorch. The goal was to create a simplified, easy-to-understand version without heavy abstractions, based on the official PyTorch Faster R-CNN codebase. It supports batch size of 1 and single-scale ROI pooling, trained on the PASCAL VOC 2007 dataset, achieving ~61-62% mAP.
+
+### Key Features
+- **Custom Build**: Manually implemented Region Proposal Network (RPN) and Region of Interest (ROI) pooling/head using PyTorch primitives for deeper understanding.
+- **Pre-Built Version**: Utilized PyTorch's built-in Faster R-CNN functions (e.g., from torchvision) for comparison in performance and ease of use.
+- **Comparison**: Evaluated both implementations on VOC 2007, highlighting trade-offs in accuracy, speed, and code complexity (custom version emphasizes transparency; pre-built offers faster setup).
+- **Dataset Setup**: Supports VOC 2007 (train/val and test). For custom datasets, modify `dataset/voc.py` and `config/voc.yaml` to update classes, annotations, and paths.
+- **Differences from Original Paper**: Uses randomly initialized 1024-dim FC layers (instead of VGG); no multi-batch support; hyperparameters adapted from official code without full tuning.
+
+### Setup and Usage
+1. Download VOC 2007 datasets and place in repo root as described in the structure.
+2. Install dependencies: `pip install torch torchvision pyyaml opencv-python`.
+3. **Train Custom Model**: `python tools/train.py --config config/voc.yaml`
+4. **Train Pre-Built Model**: `python tools/train_torchvision_frcnn.py --config config/voc.yaml`
+5. **Inference**: `python tools/infer.py --model_path checkpoints/model.pth --image_path path/to/image.jpg` (similar for pre-built).
+6. **Evaluation**: Integrated mAP calculation during training/validation.
+
+### Improvements
+- Experiment with VGG backbones or loss weighting for better mAP.
+- Add multi-scale ROI or larger batch sizes.
+- Contributions welcome for custom dataset enhancements!
