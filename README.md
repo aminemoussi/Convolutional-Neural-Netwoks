@@ -41,7 +41,11 @@ Classic_CNN/
 -------
 # 2. Faster R-CNN Object Detection in PyTorch
 
- Faster R-CNN implementation for object detection, training, inference, and mAP evaluation using PyTorch. The goal was to create a simplified, easy-to-understand version without heavy abstractions, based on the official PyTorch Faster R-CNN codebase. It supports batch size of 1 and single-scale ROI pooling, trained on the PASCAL VOC 2007 dataset, achieving ~61-62% mAP.
+ Faster R-CNN implementation for object detection, training, inference, and mAP evaluation using PyTorch. The goal was to create a simplified, easy-to-understand version without heavy abstractions, based on the official PyTorch Faster R-CNN codebase. 
+
+The project is split into two main parts to provide a comprehensive understanding of the model:
+- **From-Scratch Implementation**: A detailed, modular build of the Faster R-CNN network, including the Region Proposal Network (RPN) and ROI Pooling layers. This implementation intentionally avoids high-level abstractions to make the underlying mechanics and data flow easy to follow.
+- **Torchvision Implementation**: A parallel implementation using PyTorch's built-in torchvision.models.detection.fasterrcnn_resnet50_fpn for comparison. This demonstrates how to leverage and fine-tune pre-built models for efficient development.
 
 ### Key Features
 - **Custom Build**: Manually implemented Region Proposal Network (RPN) and Region of Interest (ROI) pooling/head using PyTorch primitives for deeper understanding.
@@ -59,6 +63,9 @@ Classic_CNN/
 6. **Evaluation**: Integrated mAP calculation during training/validation.
 
 ### Improvements
+ The from-scratch version is optimized for learning and uses a simplified configuration (batch size of 1, single-scale feature maps, and custom FC layers). It serves as a strong foundation for further experimentation and optimization: 
 - Experiment with VGG backbones or loss weighting for better mAP.
 - Add multi-scale ROI or larger batch sizes.
 - Contributions welcome for custom dataset enhancements!
+
+  
