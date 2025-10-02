@@ -304,11 +304,11 @@ class RegionProposalNetwork(nn.Module):
         proposals = proposals.reshape(proposals.size(0), 4)
 
         # filtering proposals
-        proposals, cls_scores = self.filter_proposals(
+        proposals, scores = self.filter_proposals(
             proposals, cls_scores.detach(), image.shape
         )
 
-        rpn_out = {"proposals": proposals, "scores": cls_scores}
+        rpn_out = {"proposals": proposals, "scores": scores}
 
         if not self.training or target is None:
             return rpn_out
@@ -334,3 +334,21 @@ class RegionProposalNetwork(nn.Module):
                     labels_for_anchors, pos_count=128, total_count=256
                 )
             )
+
+            # now getting regression loss on positive classifications
+            # and classification loss on both pos and neg
+            samples = torch.where(sampled_pos_indc_mask | sampled_neg_indc_mask)[0]
+            localisation_loss = torch.nn.functional.smooth_l1_loss(
+                box_transform_pred[sampled_pos_indc_mask],
+                regression_targets[sampled_pos_indc_mask],
+                beta=1 / 9,
+                reduction="sum",
+            ) / (samples.numel())
+
+            cls_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                cls_scores[samples].flatten(), labels_for_anchors[samples].flatten()
+            )
+
+            rpn_out["rpn_classification_loss"] = cls_loss
+            rpn_out["rpn_localisation_loss"] = localisation_loss
+            return rpn_out
