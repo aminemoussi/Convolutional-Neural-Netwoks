@@ -1,4 +1,5 @@
 import math
+from os import pread
 
 import anchor_handling
 import core
@@ -81,6 +82,60 @@ class ROIHead(nn.Module):
 
         return labels, matched_gt_boxes_for_proposals
 
+    def filter_predictions(self, pred_boxes, pred_labels, pred_scores):
+        r"""
+        Method to filter predictions by applying the following in order:
+        1. Filter low scoring boxes
+        2. Remove small size boxes∂
+        3. NMS for each class separately
+        4. Keep only topK detections
+        :param pred_boxes:
+        :param pred_labels:
+        :param pred_scores:
+        :return:
+        """
+
+        # low score threshold elimination
+        keep = torch.where(pred_scores > self.low_score_threshold)[0]
+        pred_boxes, pred_scores, pred_labels = (
+            pred_boxes[keep],
+            pred_scores[keep],
+            pred_labels[keep],
+        )
+
+        # eliminating small boxes
+        min_size = 16
+        w, h = pred_boxes[:, 2] - pred_boxes[:, 0], pred_boxes[:, 3] - pred_boxes[:, 1]
+        keep = (w >= min_size) & (h >= min_size)
+        keep = torch.where(keep)[0]
+        pred_boxes, pred_scores, pred_labels = (
+            pred_boxes[keep],
+            pred_scores[keep],
+            pred_labels[keep],
+        )
+
+        # NMS filtering per class
+        keep_mask = torch.zeros_like(pred_scores, dtype=torch.bool)
+        for class_id in torch.unique(pred_labels):
+            curr_endices = torch.where(pred_labels == class_id)[0]
+            curr_keep_endices = torch.ops.torchvision.nms(
+                pred_boxes[curr_endices], pred_scores[curr_endices], self.nms_threshold
+            )
+            keep_mask[curr_endices[curr_keep_endices]] = True
+
+        # post nms
+        keep_indices = torch.where(keep_mask)[0]
+        post_nms_keep_indices = keep_indices[
+            pred_scores[keep_indices].sort(descending=True)[1]
+        ]
+        keep = post_nms_keep_indices[: self.topK_detections]
+        pred_boxes, pred_scores, pred_labels = (
+            pred_boxes[keep],
+            pred_scores[keep],
+            pred_labels[keep],
+        )
+        return pred_boxes, pred_labels, pred_scores
+
     def forward(self, feat, proposals, img_shape, target):
         if self.training and target is not None:
             proposals = torch.cat([proposals, target["bboxes"][0]], dim=0)
@@ -140,16 +195,16 @@ class ROIHead(nn.Module):
         # now run proposals through the fully connected layers
         box_fc_6 = torch.nn.functional.relu(self.fc6(proposal_roi_pool_feats))
         box_fc_7 = torch.nn.functional.relu(self.fc7(box_fc_6))
-        cls_score = self.cls_layer(box_fc_7)  # 128x21 (21 classes)
+        cls_scores = self.cls_layer(box_fc_7)  # 128x21 (21 classes)
         box_trans_pred = self.bbox_reg_layer(box_fc_7)  # 128x84 (4 trans per class 21)
         # reshape box_trans_pred to be 128x21x4
-        num_boxes, num_classes = cls_score.shape
+        num_boxes, num_classes = cls_scores.shape
         box_trans_pred = box_trans_pred.reshape(num_boxes, num_classes, 4)
 
         # now getting the loss of classification + localization
         frcnn_output = {}
         if self.training and target is not None:
-            classification_loss = torch.nn.functional.cross_entropy(cls_score, labels)
+            classification_loss = torch.nn.functional.cross_entropy(cls_scores, labels)
 
             # extracting only foreground proposals
             fg_proposals_indxs = torch.where(labels > 0)[0]
@@ -164,4 +219,40 @@ class ROIHead(nn.Module):
             localization_loss = localization_loss / labels.numel()
             frcnn_output["frcnn_classification_loss"] = classification_loss
             frcnn_output["frcnn_localization_loss"] = localization_loss
+            return frcnn_output
+        else:
+            # Inference Output Processing and transformation
+            device = cls_scores.device
+            # this gets 2000 proposals as input
+            pred_boxes = anchor_handling.apply_regression_pred_to_anchors_or_proposals(
+                box_trans_pred, proposals
+            )
+            pred_boxes = anchor_handling.clamp_boxes_to_image_boundaries(
+                pred_boxes, img_shape
+            )
+            pred_scores = torch.nn.functional.softmax(cls_scores, dim=-1)
+
+            # creating a 2000x21 label structure [[0, 1...20], [0, 1, ...20]]
+            # bg included
+            pred_labels = torch.arange(num_classes, device=device)
+            pred_labels = pred_labels.view(1, -1).expand_as(pred_scores)
+
+            # removing bg detections
+            pred_boxes = pred_boxes[:, 1:]
+            pred_scores = pred_scores[:, 1:]
+            pred_labels = pred_labels[:, 1:]
+
+            # flattening everything
+            pred_boxes = pred_boxes.reshape(-1, 4)
+            pred_scores = pred_scores.reshape(-1)
+            pred_labels = pred_labels.reshape(-1)
+
+            # now we just filter the good boxes for display
+            pred_boxes, pred_labels, pred_scores = self.filter_predictions(
+                pred_boxes, pred_labels, pred_scores
+            )
+
+            frcnn_output["boxes"] = pred_boxes
+            frcnn_output["scores"] = pred_scores
+            frcnn_output["labels"] = pred_labels
             return frcnn_output
