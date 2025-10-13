@@ -90,8 +90,7 @@ def boxes_to_transformation_targets(gt_boxes, anchors_or_proposals):
     Given all anchor boxes or proposals in image and their respective
     ground truth assignments, we use the x1,y1,x2,y2 coordinates of them
     to get tx,ty,tw,th transformation targets for all anchor boxes or proposals
-    :param ground_truth_boxes: (anchors_or_proposals_in_image, 4)
-        Ground truth box assignments for the anchors/proposals
+    :param ground_truth_boxes: (anchors_or_proposals_in_image, 4) Ground truth box assignments for the anchors/proposals
     :param anchors_or_proposals: (anchors_or_proposals_in_image, 4) Anchors/Proposal boxes
     :return: regression_targets: (anchors_or_proposals_in_image, 4) transformation targets tx,ty,tw,th
         for all anchors/proposal boxes

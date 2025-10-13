@@ -145,3 +145,23 @@ class ROIHead(nn.Module):
         # reshape box_trans_pred to be 128x21x4
         num_boxes, num_classes = cls_score.shape
         box_trans_pred = box_trans_pred.reshape(num_boxes, num_classes, 4)
+
+        # now getting the loss of classification + localization
+        frcnn_output = {}
+        if self.training and target is not None:
+            classification_loss = torch.nn.functional.cross_entropy(cls_score, labels)
+
+            # extracting only foreground proposals
+            fg_proposals_indxs = torch.where(labels > 0)[0]
+            fg_class_labels = labels[fg_proposals_indxs]
+            localization_loss = torch.nn.functional.smooth_l1_loss(
+                box_trans_pred[fg_proposals_indxs, fg_class_labels],
+                regression_targets[fg_proposals_indxs],
+                beta=1 / 9,
+                reduction="sum",
+            )
+
+            localization_loss = localization_loss / labels.numel()
+            frcnn_output["frcnn_classification_loss"] = classification_loss
+            frcnn_output["frcnn_localization_loss"] = localization_loss
+            return frcnn_output
