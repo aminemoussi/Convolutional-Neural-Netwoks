@@ -41,31 +41,49 @@ Classic_CNN/
 -------
 # 2. Faster R-CNN Object Detection in PyTorch
 
- Faster R-CNN implementation for object detection, training, inference, and mAP evaluation using PyTorch. The goal was to create a simplified, easy-to-understand version without heavy abstractions, based on the official PyTorch Faster R-CNN codebase. 
+An implementation of **Faster R-CNN** from scratch based on the original paper ["Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks"](https://arxiv.org/abs/1506.01497) by Ren et al.
 
-The project is split into two main parts to provide a comprehensive understanding of the model:
-- **From-Scratch Implementation**: A detailed, modular build of the Faster R-CNN network, including the Region Proposal Network (RPN) and ROI Pooling layers. This implementation intentionally avoids high-level abstractions to make the underlying mechanics and data flow easy to follow.
-- **Torchvision Implementation**: A parallel implementation using PyTorch's built-in torchvision.models.detection.fasterrcnn_resnet50_fpn for comparison. This demonstrates how to leverage and fine-tune pre-built models for efficient development.
+## 🎯 Overview
 
-### Key Features
-- **Custom Build**: Manually implemented Region Proposal Network (RPN) and Region of Interest (ROI) pooling/head using PyTorch primitives for deeper understanding.
-- **Pre-Built Version**: Utilized PyTorch's built-in Faster R-CNN functions (e.g., from torchvision) for comparison in performance and ease of use.
-- **Comparison**: Evaluated both implementations on VOC 2007, highlighting trade-offs in accuracy, speed, and code complexity (custom version emphasizes transparency; pre-built offers faster setup).
-- **Dataset Setup**: Supports VOC 2007 (train/val and test). For custom datasets, modify `dataset/voc.py` and `config/voc.yaml` to update classes, annotations, and paths.
-- **Differences from Original Paper**: Uses randomly initialized 1024-dim FC layers (instead of VGG); no multi-batch support; hyperparameters adapted from official code without full tuning.
+Faster R-CNN introduces a Region Proposal Network (RPN) that shares convolutional features with the detection network, enabling near real-time object detection. This implementation provides both from-scratch and torchvision-based versions for comprehensive understanding and practical usage.
 
-### Setup and Usage
-1. Download VOC 2007 datasets and place in repo root as described in the structure.
-2. Install dependencies: `pip install torch torchvision pyyaml opencv-python`.
-3. **Train Custom Model**: `python tools/train.py --config config/voc.yaml`
-4. **Train Pre-Built Model**: `python tools/train_torchvision_frcnn.py --config config/voc.yaml`
-5. **Inference**: `python tools/infer.py --model_path checkpoints/model.pth --image_path path/to/image.jpg` (similar for pre-built).
-6. **Evaluation**: Integrated mAP calculation during training/validation.
+## 🏗️ Architecture
 
-### Improvements
- The from-scratch version is optimized for learning and uses a simplified configuration (batch size of 1, single-scale feature maps, and custom FC layers). It serves as a strong foundation for further experimentation and optimization: 
-- Experiment with VGG backbones or loss weighting for better mAP.
-- Add multi-scale ROI or larger batch sizes.
-- Contributions welcome for custom dataset enhancements!
+<!-- ![Architecture](path/to/architecture.png) -->
+*Faster R-CNN with Region Proposal Network and ROI pooling*
 
+**Key Components:**
+- **Backbone CNN**: Feature extraction (ResNet-based)
+- **Region Proposal Network (RPN)**: Class-agnostic region proposals with anchors
+- **ROI Pooling**: Fixed-size feature extraction from proposals  
+- **Detection Head**: Bounding box regression and classification
+
+## 📊 Performance Results
+
+<!-- | Model | Backbone | Dataset | mAP@0.5 | Inference Time |
+|-------|----------|---------|----------|----------------|
+| From Scratch | Custom CNN | VOC 2007 | ~65-70% | ~200ms |
+| Torchvision | ResNet-50-FPN | VOC 2007 | ~72-75% | ~150ms | -->
+
+## 🚀 Features
+
+- **Dual Implementation**: Both from-scratch and torchvision versions
+- **RPN with Anchors**: Multi-scale anchor boxes (3 scales × 3 ratios)
+- **End-to-End Training**: Alternating optimization between RPN and detection
+- **VOC 2007 Support**: Pre-configured for PASCAL VOC dataset
+- **mAP Evaluation**: Integrated mean Average Precision calculation
+
+## 🛠️ Technical Details
+
+```python
+# RPN Configuration
+anchors_scales = [128, 256, 512]
+anchors_ratios = [0.5, 1.0, 2.0]
+rpn_pre_nms_top_n = 12000
+rpn_post_nms_top_n = 2000
+
+# Training Parameters
+roi_batch_size = 64
+positive_fraction = 0.25
+bbox_reg_weights = (1.0, 1.0, 1.0, 1.0)
   
