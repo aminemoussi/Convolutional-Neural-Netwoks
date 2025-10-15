@@ -33,3 +33,58 @@ class faster_rcnn(nn.Module):
         self.image_std = [0.229, 0.224, 0.225]
         self.min_size = 600
         self.max_size = 1000
+
+    def normalize_resize_image_and_boxes(self, image, bboxes):
+        dtype, device = image.dtype, image.device
+
+        # normalization (image - mean)/std
+        # center around 0
+        mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
+        std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
+        image = (image - mean[:, None, None]) / std[:, None, None]
+
+        # resizing to 1000x600
+        # Make smallest side = 600px, largest side ≤ 1000px
+        # Original: 400x800 (height x width)
+        # - min_size = 400, max_size = 800
+        # - Scale for min: 600/400 = 1.5
+        # - Scale for max: 1000/800 = 1.25
+        # - Chosen scale: min(1.5, 1.25) = 1.25
+        # Result: 500x1000 (400*1.25, 800*1.25)
+        h, w = image.shape[-2:]
+        im_shape = torch.tensor(image.shape[-2:])
+        min_size = torch.min(im_shape).to(dtype=torch.float32)
+        max_size = torch.max(im_shape).to(dtype=torch.float32)
+        scale = torch.min(
+            float(self.min_size) / min_size, float(self.max_size) / max_size
+        )
+        scale_factor = scale.item()
+
+        # resize to a specific scale using bilinear interpolation
+        image = torch.nn.functional.interpolate(
+            image,
+            size=None,
+            scale_factor=scale_factor,
+            mode="bilinear",
+            recompute_scale_factor=True,
+            align_corners=False,
+        )
+
+        # resize bboxes
+        if bboxes is not None:
+            ratios = [
+                torch.tensor(s, dtype=torch.float32, device=bboxes.device)
+                / torch.tensor(s_orig, dtype=torch.float32, device=bboxes.device)
+                for s, s_orig in zip(image.shape[-2:], (h, w))
+            ]
+
+            ratio_height, ratio_width = ratios
+
+            # Scale all box coordinates
+            xmin, ymin, xmax, ymax = bboxes.unbind(2)
+            xmin = xmin * ratio_width  # Scale X coordinates
+            xmax = xmax * ratio_width
+            ymin = ymin * ratio_height  # Scale Y coordinates
+            ymax = ymax * ratio_height
+            bboxes = torch.stack((xmin, ymin, xmax, ymax), dim=2)
+        return image, bboxes
