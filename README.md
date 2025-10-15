@@ -49,25 +49,49 @@ Faster R-CNN introduces a Region Proposal Network (RPN) that shares convolutiona
 
 ## 🏗️ Architecture
 
-<!-- ![Architecture](path/to/architecture.png) -->
-*Faster R-CNN with Region Proposal Network and ROI pooling*
+ ![Architecture](Faster_RCNN/media_rcnn/architecture.png) 
+*Faster R-CNN with RPN and ROI pooling*
 
 **Key Components:**
-- **Backbone CNN**: Feature extraction (ResNet-based)
+- **Backbone CNN**: Feature extraction (VGG-16)
 - **Region Proposal Network (RPN)**: Class-agnostic region proposals with anchors
 - **ROI Pooling**: Fixed-size feature extraction from proposals  
 - **Detection Head**: Bounding box regression and classification
 
 ## 📊 Performance Results
 
-<!-- | Model | Backbone | Dataset | mAP@0.5 | Inference Time |
+| Model | Backbone | Dataset | mAP@0.5 | Inference Time |
 |-------|----------|---------|----------|----------------|
 | From Scratch | Custom CNN | VOC 2007 | ~65-70% | ~200ms |
-| Torchvision | ResNet-50-FPN | VOC 2007 | ~72-75% | ~150ms | -->
+| Torchvision | ResNet-50-FPN | VOC 2007 | ~72-75% | ~150ms |
 
-## 🚀 Features
 
-- **Dual Implementation**: Both from-scratch and torchvision versions
+## 📁 Project Structure
+```
+Faster_RCNN/
+├── config/
+│   ├── __init__.py
+│   └── voc.yaml                     # Training configuration
+├── dataset/
+│   ├── __init__.py
+│   └── voc.py                       # VOC dataset handling
+├── model/                           # From-scratch implementation
+│   ├── __init__.py
+│   ├── anchor_handling.py
+│   ├── core.py
+│   ├── faster_rcnn.py
+│   ├── region_proposal_network.py
+│   └── roi_head.py
+├── training/
+│   ├── __init__.py
+│   └── train.py
+├── testing/
+├── VOC2007/
+└── VOC2007-test/
+```
+
+##  Features
+
 - **RPN with Anchors**: Multi-scale anchor boxes (3 scales × 3 ratios)
 - **End-to-End Training**: Alternating optimization between RPN and detection
 - **VOC 2007 Support**: Pre-configured for PASCAL VOC dataset
@@ -86,4 +110,37 @@ rpn_post_nms_top_n = 2000
 roi_batch_size = 64
 positive_fraction = 0.25
 bbox_reg_weights = (1.0, 1.0, 1.0, 1.0)
-  
+```
+
+## 📸 Training Progress
+<!-- ![Training](path/to/training_curve.png) -->
+
+RPN and detection loss convergence during training
+## 🔍 Detection Examples
+ ![sample](Faster_RCNN/media_rcnn/examples.png) 
+
+Sample object detection results on VOC 2007 test set
+
+
+## 🏃‍♂️ Quick Start
+
+### 1. Setup Environment
+- Download VOC2007 data and place it in the Faster_RCNN\ folder.
+- For training:  
+```bash
+pip install torch torchvision pyyaml opencv-python
+python3 -m training.train --config config/voc.yaml
+```
+- For inference:  
+```bash
+python -m tools.infer --evaluate False --infer_samples True
+```
+
+📚 Reference
+```
+@inproceedings{ren2015faster,
+  title={Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks},
+  author={Ren, Shaoging and He, Kaiming and Girshick, Ross and Sun, Jian},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2015}
+} ```
