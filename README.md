@@ -133,7 +133,7 @@ python3 -m training.train --config config/voc.yaml
 ```
 - For inference:  
 ```bash
-python -m tools.infer --evaluate False --infer_samples True
+python -m test.infer --evaluate False --infer_samples True
 ```
 
 📚 Reference
