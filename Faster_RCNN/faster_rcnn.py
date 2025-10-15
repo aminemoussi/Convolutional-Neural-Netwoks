@@ -8,8 +8,6 @@ import roi_head
 import torch
 import torch.nn as nn
 import torchvision
-from torch._C import dtype
-from torch.cuda import _compile_kernel
 
 
 class faster_rcnn(nn.Module):
@@ -31,8 +29,8 @@ class faster_rcnn(nn.Module):
 
         self.image_mean = [0.485, 0.456, 0.406]
         self.image_std = [0.229, 0.224, 0.225]
-        self.min_size = 600
-        self.max_size = 1000
+        self.min_size = model_config["min_im_size"]
+        self.max_size = model_config["max_im_size"]
 
     def normalize_resize_image_and_boxes(self, image, bboxes):
         dtype, device = image.dtype, image.device
@@ -88,3 +86,30 @@ class faster_rcnn(nn.Module):
             ymax = ymax * ratio_height
             bboxes = torch.stack((xmin, ymin, xmax, ymax), dim=2)
         return image, bboxes
+
+    def forward(self, image, target=None):
+        old_shape = image.shape[-2:]
+        if self.training:
+            image, bboxes = self.normalize_resize_image_and_boxes(
+                image, target["bboxes"]
+            )
+            target["bboxes"] = bboxes
+        else:
+            image, _ = self.normalize_resize_image_and_boxes(image, None)
+
+        # calling backbone
+        feat = self.backbone(image)
+
+        # rpn + roi_head
+        rpn_output = self.rpn(image, feat, target)
+        proposals = rpn_output["proposals"]
+
+        # roi head + get final bboxes
+        frcnn_output = self.roi_head(feat, proposals, image.shape[-2:], target)
+        # in inference return bboxes back to their original sizes
+        if not self.training:
+            frcnn_output["boxes"] = core.transform_boxes_to_original_size(
+                frcnn_output["boxes"], image.shape[-2:], old_shape
+            )
+
+        return rpn_output, frcnn_output

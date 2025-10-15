@@ -43,3 +43,27 @@ def iou(gt, det):
 
     iou = intersection_area / union_area
     return iou
+
+
+def transform_boxes_to_original_size(boxes, new_size, original_size):
+    r"""
+    Boxes are for resized image (min_size=600, max_size=1000).
+    This method converts the boxes to whatever dimensions
+    the image was before resizing
+    :param boxes:
+    :param new_size:
+    :param original_size:
+    :return:
+    """
+    ratios = [
+        torch.tensor(s_orig, dtype=torch.float32, device=boxes.device)
+        / torch.tensor(s, dtype=torch.float32, device=boxes.device)
+        for s, s_orig in zip(new_size, original_size)
+    ]
+    ratio_height, ratio_width = ratios
+    xmin, ymin, xmax, ymax = boxes.unbind(1)
+    xmin = xmin * ratio_width
+    xmax = xmax * ratio_width
+    ymin = ymin * ratio_height
+    ymax = ymax * ratio_height
+    return torch.stack((xmin, ymin, xmax, ymax), dim=1)
