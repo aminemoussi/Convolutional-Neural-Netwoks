@@ -9,5 +9,6 @@ dependencies = [
         "torchvision",
         "numpy",
         "datasets",
-        "pyworks"
+        "pyworks",
+        "dataset>=1.6.2",
 ]

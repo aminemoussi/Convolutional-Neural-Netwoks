@@ -1,13 +1,13 @@
 import math
 from os import pread
 
-import anchor_handling
-import core
 import torch
 import torch.nn as nn
 import torchvision
 from torch._C import dtype
 from torch.cuda import _compile_kernel
+
+from . import anchor_handling, core
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("RPN on ", device)

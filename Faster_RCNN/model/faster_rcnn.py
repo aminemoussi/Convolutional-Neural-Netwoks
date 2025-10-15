@@ -1,13 +1,11 @@
 import math
 from os import pread
 
-import anchor_handling
-import core
-import region_proposal_network
-import roi_head
 import torch
 import torch.nn as nn
 import torchvision
+
+from . import anchor_handling, core, region_proposal_network, roi_head
 
 
 class faster_rcnn(nn.Module):
