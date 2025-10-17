@@ -47,7 +47,7 @@ An implementation of **Faster R-CNN** from scratch based on the original paper [
 
 | Our Custom Model | TorchVision Reference Model |
 | :---: | :---: |
-| ![Paper's Model](Faster_RCNN/media_rcnn/my_model.gif) | ![TorchVision Model](Faster_RCNN/media_rcnn/torchvision_model.gif) |
+| ![Paper's Model](Faster_RCNN/media_rcnn/papers_model.gif) | ![TorchVision Model](Faster_RCNN/media_rcnn/torchvision_model.gif) |
 | *Inference run on the Paper's custom trained model* | *Inference run on standard TorchVision model* |
 
 </div>
