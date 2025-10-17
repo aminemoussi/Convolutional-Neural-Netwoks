@@ -84,7 +84,9 @@ Faster_RCNN/
 │   └── roi_head.py
 ├── training/
 │   ├── __init__.py
-│   └── train.py
+│   └── train.py                         # main training script for params defined in voc.yaml
+├── testing/
+│   └── test_inference.py                # tsting inference, .pth file has to be in this directory as well + testing video
 ├── testing/
 ├── VOC2007/
 └── VOC2007-test/
