@@ -87,9 +87,8 @@ Faster_RCNN/
 │   └── train.py                         # main training script for params defined in voc.yaml
 ├── testing/
 │   └── test_inference.py                # tsting inference, .pth file has to be in this directory as well + testing video
-├── testing/
-├── VOC2007/
-└── VOC2007-test/
+├── VOC2007/                             # training + validation data
+└── VOC2007-test/                        # testing data
 ```
 
 ##  Features
@@ -133,6 +132,11 @@ Sample object detection results on VOC 2007 test set
 ```bash
 pip install torch torchvision pyyaml opencv-python
 python3 -m training.train --config config/voc.yaml
+```
+- For testing on a video:
+ (the ".pth" model + ".mp4" video must be in the same directory as testing/test_inference.py)
+```bash
+python3 testing.test_inference.py
 ```
 - For inference:  
 ```bash
