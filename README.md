@@ -43,6 +43,15 @@ Classic_CNN/
 
 An implementation of **Faster R-CNN** from scratch based on the original paper ["Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks"](https://arxiv.org/abs/1506.01497) by Ren et al.
 
+<div align="center">
+
+| Our Custom Model | TorchVision Reference Model |
+| :---: | :---: |
+| ![Paper's Model](Faster_RCNN/media_rcnn/my_model.gif) | ![TorchVision Model](Faster_RCNN/media_rcnn/torchvision_model.gif) |
+| *Inference run on the Paper's custom trained model* | *Inference run on standard TorchVision model* |
+
+</div>
+
 ## 🎯 Overview
 
 Faster R-CNN introduces a Region Proposal Network (RPN) that shares convolutional features with the detection network, enabling near real-time object detection. This implementation provides both from-scratch and torchvision-based versions for comprehensive understanding and practical usage.
@@ -101,16 +110,33 @@ Faster_RCNN/
 ## 🛠️ Technical Details
 
 ```python
-# RPN Configuration
-anchors_scales = [128, 256, 512]
-anchors_ratios = [0.5, 1.0, 2.0]
-rpn_pre_nms_top_n = 12000
-rpn_post_nms_top_n = 2000
+# model_params:
+  im_channels : 3
+  aspect_ratios: [0.5, 1, 2]
+  scales: [128, 256, 512]
+  min_im_size : 600
+  max_im_size : 1000
+  backbone_out_channels : 512
+  fc_inner_dim : 1024
+  rpn_bg_threshold : 0.3
+  rpn_fg_threshold : 0.7
+  rpn_nms_threshold : 0.7
+  rpn_train_prenms_topk : 12000
 
 # Training Parameters
-roi_batch_size = 64
-positive_fraction = 0.25
-bbox_reg_weights = (1.0, 1.0, 1.0, 1.0)
+  seed : 1111
+  acc_steps : 1 # increase you want to get gradients from >1 steps(kind of mimicking >1 batch size)
+  num_epochs: 20
+  lr_steps : [12, 16]
+  lr: 0.001
+  ckpt_name: 'faster_rcnn_voc2007.pth'
+
+dataset_params:
+  im_train_path: 'VOC2007/JPEGImages'
+  ann_train_path: 'VOC2007/Annotations'
+  im_test_path: 'VOC2007-test/JPEGImages'
+  ann_test_path: 'VOC2007-test/Annotations'
+  num_classes : 21
 ```
 
 ## 📸 Training Progress
