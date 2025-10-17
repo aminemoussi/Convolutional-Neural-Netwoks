@@ -134,11 +134,11 @@ pip install torch torchvision pyyaml opencv-python
 python3 -m training.train --config config/voc.yaml
 ```
 - For testing on a video:
- (the ".pth" model + ".mp4" video must be in the same directory as testing/test_inference.py)
+ (place 'testing/test_inference.py' in 'Faster_RCNN/' directory, the ".pth" model + ".mp4" video must be in the same directory as testing/test_inference.py)
 ```bash
-python3 testing.test_inference.py
+python3 test_inference.py
 ```
-- For inference:  
+- For Real_time inference:  
 ```bash
 python -m test.infer --evaluate False --infer_samples True
 ```
