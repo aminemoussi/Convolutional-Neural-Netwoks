@@ -113,7 +113,8 @@ bbox_reg_weights = (1.0, 1.0, 1.0, 1.0)
 ```
 
 ## 📸 Training Progress
-<!-- ![Training](path/to/training_curve.png) -->
+![Training](Faster_RCNN/media_rcnn/training.png) 
+training progress mid epoch 5
 
 RPN and detection loss convergence during training
 ## 🔍 Detection Examples
