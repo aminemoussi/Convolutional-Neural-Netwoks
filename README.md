@@ -118,7 +118,7 @@ training progress mid epoch 5
 
 RPN and detection loss convergence during training
 ## 🔍 Detection Examples
- ![sample](Faster_RCNN/media_rcnn/examples.png) 
+ ![sample](Faster_RCNN/media_rcnn/examples_1.png) 
 
 Sample object detection results on VOC 2007 test set
 
